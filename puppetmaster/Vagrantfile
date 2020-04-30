@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$init = <<-SCRIPT
+sudo yum -y update
+sudo yum -y install git nano ntpdate
+sudo ntpdate 0.centos.pool.ntp.org
+sudo systemctl start ntpd
+sudo systemctl enable ntpd
+sudo yum -y install https://yum.puppetlabs.com/puppet-release-el-7.noarch.rpm
+SCRIPT
+
+$script = <<-SCRIPT
+sudo yum -y install puppetserver
+
+sudo sed -i 's/JAVA_ARGS="-Xms2g -Xmx2g/JAVA_ARGS="-Xms500m -Xmx500m/' /etc/sysconfig/puppetserver
+
+sudo echo '\n[main]
+certname = puppetmaster
+server = puppetmaster
+environment = production
+runinterval = 1h' >> /etc/puppetlabs/puppet/puppet.conf
+
+sudo sed -i '/code/a dns_alt_names = puppetmaster,puppet' /etc/puppetlabs/puppet/puppet.conf
+
+sudo systemctl start puppetserver
+sudo systemctl enable puppetserver
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.define "puppetmaster" do |puppetmaster|
+    puppetmaster.vm.hostname = "puppetmaster"
+    puppetmaster.vm.network "private_network", ip: "172.31.0.250"
+    puppetmaster.vm.provision "shell", inline: $init
+    puppetmaster.vm.provision :reload
+    puppetmaster.vm.provision "shell", inline: $script
+  end
+
+  config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+
+  config.vm.provider :virtualbox do |p|
+    p.gui = false
+    p.customize ["modifyvm", :id, "--memory", 2048]
+    p.customize ["modifyvm", :id, "--cpus", 1]
+  end
+end

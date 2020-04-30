@@ -1,0 +1,74 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<-SCRIPT
+echo 172.31.0.250 puppet >> /etc/hosts
+sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
+sudo dpkg -i puppetlabs-release-trusty.deb
+sudo apt-get update
+sudo apt-get install puppet -y
+sudo sed -i 's/START=no/START=yes/' /etc/default/puppet
+sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
+sudo service puppet start
+sudo service puppet enable
+
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-get install docker-ce=18.06.1~ce~3-0~ubuntu -y
+
+docker volume create --name jenkins_home
+docker run -d --restart always -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home jenkins
+
+sudo apt install nginx -y
+cd /etc/nginx/sites-available
+sudo rm default ../sites-enabled/default
+
+echo 'upstream app_server {
+  server 127.0.0.1:8080 fail_timeout=0;
+}
+
+server {
+  listen 80;
+  listen [::]:80 default ipv6only=on;
+  server_name jenkins;
+
+  location / {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+
+      if (!-f $request_filename) {
+          proxy_pass http://app_server;
+          break;
+      }
+  }
+}' > jenkins
+
+sudo ln -s /etc/nginx/sites-available/jenkins /etc/nginx/sites-enabled/
+
+sudo service nginx restart
+SCRIPT
+
+# To get the intial admin password, connect to the VM and use:
+# sudo cat /var/lib/docker/volumes/jenkins_home/_data/secrets/initialAdminPassword
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "ubuntu/bionic64"
+
+  config.vm.define "jenkins" do |jenkins|
+    jenkins.vm.hostname = "jenkins"
+    jenkins.vm.network "private_network", ip: "172.31.0.251"
+    jenkins.vm.provision "shell", inline: $script
+  end
+
+  config.vm.provider :virtualbox do |p|
+    p.gui = false
+    p.customize ["modifyvm", :id, "--memory", 2048]
+    p.customize ["modifyvm", :id, "--cpus", 1]
+  end
+
+end
