@@ -54,7 +54,7 @@ sudo service nginx restart
 SCRIPT
 
 
-$grafana = <<-SCRIPT
+$prometheus = <<-SCRIPT
 sudo -i
 useradd --no-create-home --shell /bin/false prometheus
 mkdir /etc/prometheus && chown prometheus:prometheus /etc/prometheus
@@ -118,7 +118,7 @@ Vagrant.configure("2") do |config|
     logger.vm.provision "shell", inline: $docker
     logger.vm.provision "shell", inline: $puppet
     logger.vm.provision "shell", inline: $grafana
-    # logger.vm.provision "shell", inline: $prometheus
+    logger.vm.provision "shell", inline: $prometheus
   end
 
   config.vm.provider :virtualbox do |p|
