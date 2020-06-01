@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<-SCRIPT
+echo 172.31.0.250 puppet >> /etc/hosts
+sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
+sudo dpkg -i puppetlabs-release-trusty.deb
+sudo apt-get update
+sudo apt-get install puppet -y
+sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
+sudo systemctl start puppet
+sudo systemctl enable puppet
+sudo apt install nfs-server -y
+sudo systemctl start nfs-server
+sudo systemctl enable nfs-server
+sudo mkdir -p /srv/nfs/jenkins
+sudo chmod -R 777 /srv/nfs/jenkins
+sudo echo '/srv/nfs/jenkins    *(rw,sync,no_subtree_check,no_root_squash,no_all_squash,insecure)' >> /etc/exports
+sudo exportfs -rav
+sudo systemctl restart nfs-server
+SCRIPT
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "ubuntu/bionic64"
+
+  config.vm.define "nfs" do |nfs|
+    nfs.vm.hostname = "nfs"
+    nfs.vm.network "private_network", ip: "172.31.0.254"
+    nfs.vm.provision "shell", inline: $script
+  end
+
+  config.vm.provider :virtualbox do |p|
+    p.gui = false
+    p.customize ["modifyvm", :id, "--memory", 1024]
+    p.customize ["modifyvm", :id, "--cpus", 1]
+  end
+
+end

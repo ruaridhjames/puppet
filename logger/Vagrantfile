@@ -1,7 +1,15 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-$script = <<-SCRIPT
+$docker = <<-SCRIPT
+sudo -i
+apt-get install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+apt install docker-ce -y
+SCRIPT
+
+$puppet = <<-SCRIPT
 echo 172.31.0.250 puppet >> /etc/hosts
 sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
@@ -10,29 +18,23 @@ sudo apt-get install puppet -y
 sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
 sudo systemctl start puppet
 sudo systemctl enable puppet
+SCRIPT
 
-sudo apt-get update
-sudo apt-get install apt-transport-https ca-certificates curl software-properties-common -y
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-sudo apt-get update
-sudo apt-get install docker-ce=18.06.1~ce~3-0~ubuntu -y
-
-docker volume create --name nexus-data
-docker run -d --restart always -p 8081:8081 --name nexus -v nexus-data:/nexus-data sonatype/nexus3
+$grafana = <<-SCRIPT
+docker run -d --restart always --name=grafana -p 3000:3000 grafana/grafana
 
 sudo apt install nginx -y
 cd /etc/nginx/sites-available
 sudo rm default ../sites-enabled/default
 
-echo 'upstream app_server {
-  server 127.0.0.1:8081 fail_timeout=0;
+echo 'upstream grafana_server {
+  server 127.0.0.1:3000 fail_timeout=0;
 }
 
 server {
   listen 80;
   listen [::]:80 default ipv6only=on;
-  server_name nexus;
+  server_name logger;
 
   location / {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -40,29 +42,32 @@ server {
       proxy_redirect off;
 
       if (!-f $request_filename) {
-          proxy_pass http://app_server;
+          proxy_pass http://grafana_server;
           break;
       }
   }
-}' >> nexus
+}' >> grafana
 
-sudo ln -s /etc/nginx/sites-available/nexus /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/grafana /etc/nginx/sites-enabled/
 
 sudo service nginx restart
 SCRIPT
 
+
 # To get the intial admin password, connect to the VM and use:
 # sudo cat /var/lib/docker/volumes/nexus-data/_data/admin.password
-# sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
 
 Vagrant.configure("2") do |config|
 
   config.vm.box = "ubuntu/bionic64"
 
-  config.vm.define "nexus" do |nexus|
-    nexus.vm.hostname = "nexus"
-    nexus.vm.network "private_network", ip: "172.31.0.253"
-    nexus.vm.provision "shell", inline: $script
+  config.vm.define "logger" do |logger|
+    logger.vm.hostname = "logger"
+    logger.vm.network "private_network", ip: "172.31.0.251"
+    logger.vm.provision "shell", inline: $docker
+    #logger.vm.provision "shell", inline: $puppet
+    logger.vm.provision "shell", inline: $grafana
+    logger.vm.provision "shell", inline: $prometheus
   end
 
   config.vm.provider :virtualbox do |p|
@@ -72,3 +77,7 @@ Vagrant.configure("2") do |config|
   end
 
 end
+
+# docker volume create --name nexus-data
+# docker run -d --restart always -p 8081:8081 --name nexus -v nexus-data:/nexus-data sonatype/nexus3
+

@@ -1,59 +1,81 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-$script = <<-SCRIPT
+$puppet = <<-SCRIPT
 echo 172.31.0.250 puppet >> /etc/hosts
 sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
 sudo apt-get update
 sudo apt-get install puppet -y
-sudo sed -i 's/START=no/START=yes/' /etc/default/puppet
 sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
-sudo service puppet start
-sudo service puppet enable
-
-sudo apt-get update
-sudo apt-get install apt-transport-https ca-certificates curl software-properties-common -y
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-sudo apt-get update
-sudo apt-get install docker-ce=18.06.1~ce~3-0~ubuntu -y
-
-docker volume create --name jenkins_home
-docker run -d --restart always -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home jenkins/jenkins
-
-sudo apt install nginx -y
-cd /etc/nginx/sites-available
-sudo rm default ../sites-enabled/default
-
-echo 'upstream app_server {
-  server 127.0.0.1:8080 fail_timeout=0;
-}
-
-server {
-  listen 80;
-  listen [::]:80 default ipv6only=on;
-  server_name jenkins;
-
-  location / {
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header Host $http_host;
-      proxy_redirect off;
-
-      if (!-f $request_filename) {
-          proxy_pass http://app_server;
-          break;
-      }
-  }
-}' > jenkins
-
-sudo ln -s /etc/nginx/sites-available/jenkins /etc/nginx/sites-enabled/
-
-sudo service nginx restart
+sudo systemctl start puppet
+sudo systemctl enable puppet
 SCRIPT
 
-# To get the intial admin password, connect to the VM and use:
-# sudo cat /var/lib/docker/volumes/jenkins_home/_data/secrets/initialAdminPassword
+$init = <<-SCRIPT
+sudo -i
+
+apt update
+apt upgrade -y
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sudo sysctl --system
+
+apt-get install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+apt install docker-ce -y
+cat > /etc/docker/daemon.json <<EOF
+{
+   "exec-opts": ["native.cgroupdriver=systemd"],
+   "log-driver": "json-file",
+   "log-opts": {
+        "max-size": "100m"
+   },
+   "storage-driver": "overlay2"
+}
+EOF
+
+mkdir -p /etc/systemd/system/docker.service.d
+systemctl daemon-reload
+systemctl restart docker
+systemctl enable docker
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+apt update
+apt install kubernetes-cni kubelet kubeadm kubectl -y
+apt-mark hold kubelet kubeadm kubectl
+systemctl daemon-reload
+systemctl restart kubelet
+
+logout
+
+IP_ADDR=`ifconfig enp0s8 | grep mask | awk '{print $2}'`
+HOST_NAME=$(hostname -s)
+kubeadm init --apiserver-advertise-address=$IP_ADDR --apiserver-cert-extra-sans=$IP_ADDR  --node-name $HOST_NAME --pod-network-cidr=172.16.0.0/16
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+sudo kubectl apply -f https://docs.projectcalico.org/v3.14/manifests/calico.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+kubectl create serviceaccount dashboard-admin-sa
+kubectl create clusterrolebinding dashboard-admin-sa --clusterrole=cluster-admin --serviceaccount=default:dashboard-admin-sa
+SCRIPT
+
+# To get the intial admin password, connect to the nfs server and use:
+# sudo cat /srv/nfs/jenkins/secrets/initialAdminPassword
+
+# kubectl get pods/pv/pvc/nodes
+# kubectl apply -f .yml
 
 Vagrant.configure("2") do |config|
 
@@ -61,14 +83,32 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "jenkins" do |jenkins|
     jenkins.vm.hostname = "jenkins"
-    jenkins.vm.network "private_network", ip: "172.31.0.251"
-    jenkins.vm.provision "shell", inline: $script
+    jenkins.vm.network "private_network", ip: "172.31.0.252"
+    jenkins.vm.provision "file", source: "service.yml", destination: "/home/vagrant/service.yml"
+    jenkins.vm.provision "file", source: "deploy.yml", destination: "/home/vagrant/deploy.yml"
+    jenkins.vm.provision "file", source: "pv.yml", destination: "/home/vagrant/pv.yml"
+    jenkins.vm.provision "file", source: "pvc.yml", destination: "/home/vagrant/pvc.yml"
+    jenkins.vm.provision "shell", inline: $puppet
+    jenkins.vm.provision "shell", inline: $init
   end
 
   config.vm.provider :virtualbox do |p|
     p.gui = false
     p.customize ["modifyvm", :id, "--memory", 2048]
-    p.customize ["modifyvm", :id, "--cpus", 1]
+    p.customize ["modifyvm", :id, "--cpus", 2]
   end
 
 end
+
+
+
+# $nfs = <<-SCRIPT
+# sudo apt install nfs-server -y
+# sudo systemctl start nfs-server
+# sudo systemctl enable nfs-server
+# sudo mkdir -p /srv/nfs/jenkins
+# sudo chmod -R 777 /srv/nfs/jenkins
+# sudo echo '/srv/nfs/jenkins    *(rw,sync,no_subtree_check,no_root_squash,no_all_squash,insecure)' >> /etc/exports
+# sudo exportfs -rav
+# sudo systemctl restart nfs-server
+# SCRIPT
