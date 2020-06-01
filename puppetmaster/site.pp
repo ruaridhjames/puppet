@@ -1,0 +1,3 @@
+default {
+  node_exporter
+}

@@ -38,6 +38,10 @@ Vagrant.configure("2") do |config|
     puppetmaster.vm.provision "shell", inline: $init
     puppetmaster.vm.provision :reload
     puppetmaster.vm.provision "shell", inline: $script
+    puppetmaster.vm.provision "file", source: "site.pp", destination: "/etc/puppetlabs/code/environments/production/manifests/site.pp"
+    puppetmaster.vm.provision "file", source: "node_exporter.pp", destination: "/etc/puppetlabs/code/modules/node_exporter/manifests/init.pp"
+    puppetmaster.vm.provision "file", source: "daemon_reload.pp", destination: "/etc/puppetlabs/code/modules/systemd/manifests/init.pp"
+
   end
 
   config.vm.synced_folder ".", "/vagrant", type: "virtualbox"

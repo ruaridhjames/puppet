@@ -15,7 +15,7 @@ sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
 sudo apt-get update
 sudo apt-get install puppet -y
-sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
+sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1m' /etc/puppet/puppet.conf
 sudo systemctl start puppet
 sudo systemctl enable puppet
 SCRIPT
@@ -54,6 +54,55 @@ sudo service nginx restart
 SCRIPT
 
 
+$grafana = <<-SCRIPT
+sudo -i
+useradd --no-create-home --shell /bin/false prometheus
+mkdir /etc/prometheus && chown prometheus:prometheus /etc/prometheus
+mkdir /var/lib/prometheus && chown prometheus:prometheus /var/lib/prometheus
+
+mkdir prometheus-files && tar -xvf prometheus-2.18.1.linux-amd64.tar.gz -C prometheus-files --strip-components 1
+
+cp prometheus-files/prometheus /usr/local/bin/ && chown prometheus:prometheus /usr/local/bin/prometheus
+cp prometheus-files/promtool /usr/local/bin/ && chown prometheus:prometheus /usr/local/bin/promtool
+
+cp -r prometheus-files/consoles /etc/prometheus && chown -R prometheus:prometheus /etc/prometheus/consoles
+cp -r prometheus-files/console_libraries /etc/prometheus && sudo chown -R prometheus:prometheus /etc/prometheus/console_libraries
+
+mv /home/vagrant/prometheus.yml /etc/prometheus/prometheus.yml
+chown prometheus:prometheus /etc/prometheus/prometheus.yml
+
+mv /home/vagrant/prometheus.service /etc/systemd/system/prometheus.service
+
+systemctl daemon-reload
+systemctl start prometheus
+
+cd /etc/nginx/sites-available
+echo 'upstream prometheus_server {
+  server 127.0.0.1:9090 fail_timeout=0;
+}
+
+server {
+  listen 9090;
+  listen [::]:9090 default ipv6only=on;
+  server_name logger;
+
+  location / {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+
+      if (!-f $request_filename) {
+          proxy_pass http://prometheus_server;
+          break;
+      }
+  }
+}' >> prometheus
+
+sudo ln -s /etc/nginx/sites-available/prometheus /etc/nginx/sites-enabled/
+
+sudo service nginx restart
+SCRIPT
+
 # To get the intial admin password, connect to the VM and use:
 # sudo cat /var/lib/docker/volumes/nexus-data/_data/admin.password
 
@@ -64,10 +113,12 @@ Vagrant.configure("2") do |config|
   config.vm.define "logger" do |logger|
     logger.vm.hostname = "logger"
     logger.vm.network "private_network", ip: "172.31.0.251"
+    logger.vm.provision "file", source: "prometheus.yml", destination: "/home/vagrant/prometheus.yml"
+    logger.vm.provision "file", source: "prometheus.service", destination: "/home/vagrant/prometheus.service"
     logger.vm.provision "shell", inline: $docker
-    #logger.vm.provision "shell", inline: $puppet
+    logger.vm.provision "shell", inline: $puppet
     logger.vm.provision "shell", inline: $grafana
-    logger.vm.provision "shell", inline: $prometheus
+    # logger.vm.provision "shell", inline: $prometheus
   end
 
   config.vm.provider :virtualbox do |p|
