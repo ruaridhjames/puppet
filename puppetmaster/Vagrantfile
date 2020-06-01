@@ -25,6 +25,8 @@ sudo sed -i '/code/a dns_alt_names = puppetmaster,puppet' /etc/puppetlabs/puppet
 
 sudo systemctl start puppetserver
 sudo systemctl enable puppetserver
+
+echo 'PATH=$PATH:/opt/puppetlabs/bin/puppetserver' >> /etc/profile
 SCRIPT
 
 Vagrant.configure("2") do |config|
