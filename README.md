@@ -1,4 +1,6 @@
-#### Installation Order
+## Installation Order
+
+---
 
 The most important part here is that the Puppet Master is installed first. The rest is not too important.
 
@@ -9,7 +11,7 @@ The most important part here is that the Puppet Master is installed first. The r
 5. Nexus
 6. Logger
 
-#### Puppet Master
+## Puppet Master
 
 ---
 
@@ -26,11 +28,65 @@ On agents:
 
 - Test connection and force pull manfiests: `puppet agent --test`
 
-#### Jenkins
+## Jenkins
 
 ---
 
-##### Add node to cluster
+#### Add node to cluster
+
+---
+
+#### Initial Password
+
+To get initial password either connect to the NFS-Server and navigate to:
+
+```
+/srv/nfs/jenkins/secrets/initialAdminPassword
+```
+
+## Nexus
+
+---
+
+#### Get Initial Password
+
+Connect to the VM and naviate to
+
+```
+/var/lib/docker/volumes/nexus-data/_data/admin.password
+```
+
+## Grafana
+
+---
+
+Add Prometheus as a data source - do not use localhost even though Prometheus and Grafana are on the same VM. Use the VMs IP.
+
+A default Prometheus dashboard can be imported with
+on Grafana with `11074` in the Dashboard ID section.
+
+## Requirements
+
+---
+
+- [Vagrant Reload plugin](https://github.com/aidanns/vagrant-reload)
+- Check IP addresses don't clash.
+  - If changing the IP address of the NFS server, be sure to reflect these changes in the `PV.yml` file on the Jenkins server.
+  - If changing any other IP ensure you update the `Prometheus.yml` file.
+  - Update the puppet master IP at `/etc/hosts`.
+
+## Default links to web interfaces
+
+---
+
+Grafana:
+Prometheus:
+Jenkins: 172.31.0.12:30001
+Nexus:
+
+## Kubernetes Notes
+
+---
 
 Once installed scroll up and there will be 2 lines similar to
 
@@ -45,50 +101,6 @@ sudo -i
 ```
 
 ---
-
-##### Initial Password
-
-To get initial password either connect to the NFS-Server and navigate to:
-
-```
-/srv/nfs/jenkins/secrets/initialAdminPassword
-```
-
-#### Nexus
-
----
-
-##### Get Initial Password
-
-Connect to the VM and naviate to
-
-```
-/var/lib/docker/volumes/nexus-data/_data/admin.password
-```
-
-#### Grafana
-
-Add Prometheus as a data source - do not use localhost even though Prometheus and Grafana are on the same VM. Use the VMs IP.
-
-A default Prometheus dashboard can be imported with
-on Grafana with `11074` in the Dashboard ID section.
-
-#### Requirements
-
-- [Vagrant Reload plugin](https://github.com/aidanns/vagrant-reload)
-- Check IP addresses don't clash.
-  - If changing the IP address of the NFS server, be sure to reflect these changes in the `PV.yml` file on the Jenkins server.
-  - If changing any other IP ensure you update the `Prometheus.yml` file.
-  - Update the puppet master IP at `/etc/hosts`.
-
-#### Default links to web interfaces
-
-Grafana:
-Prometheus:
-Jenkins: 172.31.0.12:30001
-Nexus:
-
-#### Kubernetes Notes
 
 To access the Kubernetes Dashboard from outside a VM running Kubernetes, use an SSH tunnel:
 
