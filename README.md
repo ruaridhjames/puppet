@@ -54,6 +54,12 @@ Connect to the VM and naviate to
 
 ## Grafana
 
+#### Default login
+
+`Username: admin`
+
+`Password: admin`
+
 Add Prometheus as a data source - do not use localhost even though Prometheus and Grafana are on the same VM. Use the VMs IP.
 
 A default Prometheus dashboard can be imported with
