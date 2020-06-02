@@ -2,12 +2,12 @@
 # vi: set ft=ruby :
 
 $puppet = <<-SCRIPT
-echo 172.31.0.250 puppet >> /etc/hosts
+echo 172.31.0.10 puppet >> /etc/hosts
 sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
 sudo apt-get update
 sudo apt-get install puppet -y
-sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1m' /etc/puppet/puppet.conf
+sudo sed -i '/\\[main\\]/ a certname = jenkins\\nserver = puppet\\nenvironment = production\\nruninterval = 1m' /etc/puppet/puppet.conf
 sudo systemctl start puppet
 sudo systemctl enable puppet
 SCRIPT
@@ -69,6 +69,14 @@ sudo kubectl apply -f https://docs.projectcalico.org/v3.14/manifests/calico.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
 kubectl create serviceaccount dashboard-admin-sa
 kubectl create clusterrolebinding dashboard-admin-sa --clusterrole=cluster-admin --serviceaccount=default:dashboard-admin-sa
+
+
+cd /home/vagrant
+
+kubectl apply -f pv.yml
+kubectl apply -f pvc.yml
+kubectl apply -f service.yml
+kubectl apply -f deploy.yml
 SCRIPT
 
 # To get the intial admin password, connect to the nfs server and use:
@@ -83,7 +91,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "jenkins" do |jenkins|
     jenkins.vm.hostname = "jenkins"
-    jenkins.vm.network "private_network", ip: "172.31.0.252"
+    jenkins.vm.network "private_network", ip: "172.31.0.12"
     jenkins.vm.provision "file", source: "service.yml", destination: "/home/vagrant/service.yml"
     jenkins.vm.provision "file", source: "deploy.yml", destination: "/home/vagrant/deploy.yml"
     jenkins.vm.provision "file", source: "pv.yml", destination: "/home/vagrant/pv.yml"
@@ -99,16 +107,3 @@ Vagrant.configure("2") do |config|
   end
 
 end
-
-
-
-# $nfs = <<-SCRIPT
-# sudo apt install nfs-server -y
-# sudo systemctl start nfs-server
-# sudo systemctl enable nfs-server
-# sudo mkdir -p /srv/nfs/jenkins
-# sudo chmod -R 777 /srv/nfs/jenkins
-# sudo echo '/srv/nfs/jenkins    *(rw,sync,no_subtree_check,no_root_squash,no_all_squash,insecure)' >> /etc/exports
-# sudo exportfs -rav
-# sudo systemctl restart nfs-server
-# SCRIPT

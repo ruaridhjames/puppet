@@ -19,7 +19,10 @@ sudo echo '\n[main]
 certname = puppetmaster
 server = puppetmaster
 environment = production
-runinterval = 1h' >> /etc/puppetlabs/puppet/puppet.conf
+runinterval = 1m
+
+[agent]
+runinterval = 1m' >> /etc/puppetlabs/puppet/puppet.conf
 
 sudo sed -i '/code/a dns_alt_names = puppetmaster,puppet' /etc/puppetlabs/puppet/puppet.conf
 
@@ -29,18 +32,32 @@ sudo systemctl enable puppetserver
 echo 'PATH=$PATH:/opt/puppetlabs/bin/puppetserver' >> /etc/profile
 SCRIPT
 
+$moveFiles = <<-SCRIPT
+mkdir -p /etc/puppetlabs/code/environments/production/manifests/
+mkdir -p /etc/puppetlabs/code/modules/node_exporter/manifests/
+mkdir -p /etc/puppetlabs/code/modules/systemd/manifests/
+sudo mv /home/vagrant/site.pp /etc/puppetlabs/code/environments/production/manifests/site.pp
+sudo mv /home/vagrant/node_exporter.pp /etc/puppetlabs/code/modules/node_exporter/manifests/init.pp
+sudo mv /home/vagrant/daemon_reload.pp /etc/puppetlabs/code/modules/systemd/manifests/init.pp
+
+sudo -i
+puppet module install puppet-archive --version 4.5.0
+exit
+SCRIPT
+
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/7"
 
   config.vm.define "puppetmaster" do |puppetmaster|
     puppetmaster.vm.hostname = "puppetmaster"
-    puppetmaster.vm.network "private_network", ip: "172.31.0.250"
+    puppetmaster.vm.network "private_network", ip: "172.31.0.10"
     puppetmaster.vm.provision "shell", inline: $init
     puppetmaster.vm.provision :reload
     puppetmaster.vm.provision "shell", inline: $script
-    puppetmaster.vm.provision "file", source: "site.pp", destination: "/etc/puppetlabs/code/environments/production/manifests/site.pp"
-    puppetmaster.vm.provision "file", source: "node_exporter.pp", destination: "/etc/puppetlabs/code/modules/node_exporter/manifests/init.pp"
-    puppetmaster.vm.provision "file", source: "daemon_reload.pp", destination: "/etc/puppetlabs/code/modules/systemd/manifests/init.pp"
+    puppetmaster.vm.provision "file", source: "site.pp", destination: "/home/vagrant/site.pp"
+    puppetmaster.vm.provision "file", source: "node_exporter.pp", destination: "/home/vagrant/node_exporter.pp"
+    puppetmaster.vm.provision "file", source: "daemon_reload.pp", destination: "/home/vagrant/daemon_reload.pp"
+    puppetmaster.vm.provision "shell", inline: $moveFiles
 
   end
 

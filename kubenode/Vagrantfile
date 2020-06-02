@@ -2,12 +2,12 @@
 # vi: set ft=ruby :
 
 $puppet = <<-SCRIPT
-echo 172.31.0.250 puppet >> /etc/hosts
+echo 172.31.0.10 puppet >> /etc/hosts
 sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
 sudo apt-get update
 sudo apt-get install puppet -y
-sudo sed -i '/\[main\]/ a certname = nfs\nserver = puppet\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
+sudo sed -i '/\\[main\\]/ a certname = kubenode\\nserver = puppet\\nenvironment = production\\nruninterval = 1m' /etc/puppet/puppet.conf
 sudo systemctl start puppet
 sudo systemctl enable puppet
 SCRIPT

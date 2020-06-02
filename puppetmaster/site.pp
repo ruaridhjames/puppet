@@ -1,3 +1,3 @@
-default {
-  node_exporter
+node default {
+  include node_exporter
 }

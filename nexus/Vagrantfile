@@ -2,12 +2,12 @@
 # vi: set ft=ruby :
 
 $script = <<-SCRIPT
-echo 172.31.0.250 puppet >> /etc/hosts
+echo 172.31.0.10 puppet >> /etc/hosts
 sudo wget http://apt.puppetlabs.com/puppetlabs-release-trusty.deb
 sudo dpkg -i puppetlabs-release-trusty.deb
 sudo apt-get update
 sudo apt-get install puppet -y
-sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
+sudo sed -i '/\\[main\\]/ a certname = nexus\\nserver = puppet\\nenvironment = production\\nruninterval = 1m' /etc/puppet/puppet.conf
 sudo systemctl start puppet
 sudo systemctl enable puppet
 
@@ -25,7 +25,7 @@ sudo apt install nginx -y
 cd /etc/nginx/sites-available
 sudo rm default ../sites-enabled/default
 
-echo 'upstream app_server {
+echo 'upstream nexus_server {
   server 127.0.0.1:8081 fail_timeout=0;
 }
 
@@ -40,7 +40,7 @@ server {
       proxy_redirect off;
 
       if (!-f $request_filename) {
-          proxy_pass http://app_server;
+          proxy_pass http://nexus_server;
           break;
       }
   }
@@ -61,7 +61,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "nexus" do |nexus|
     nexus.vm.hostname = "nexus"
-    nexus.vm.network "private_network", ip: "172.31.0.253"
+    nexus.vm.network "private_network", ip: "172.31.0.13"
     nexus.vm.provision "shell", inline: $script
   end
 

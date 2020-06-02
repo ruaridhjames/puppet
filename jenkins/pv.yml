@@ -11,5 +11,5 @@ spec:
   accessModes:
     - ReadWriteMany
   nfs:
-    server: 172.31.0.5 # ip addres of nfs server
+    server: 172.31.0.14 # ip addres of nfs server
     path: '/srv/nfs/jenkins' # path to directory
