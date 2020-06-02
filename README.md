@@ -1,3 +1,11 @@
+## Requirements
+
+- [Vagrant Reload plugin](https://github.com/aidanns/vagrant-reload)
+- Check IP addresses don't clash.
+  - If changing the IP address of the NFS server, be sure to reflect these changes in the `PV.yml` file on the Jenkins server.
+  - If changing any other IP ensure you update the `Prometheus.yml` file.
+  - Update the puppet master IP at `/etc/hosts`.
+
 ## Installation Order
 
 The most important part here is that the Puppet Master is installed first. The rest is not too important.
@@ -26,7 +34,7 @@ On agents:
 
 ## Jenkins
 
-#### Initial Password
+#### Get Initial Password
 
 To get initial password either connect to the NFS-Server and navigate to:
 
@@ -51,20 +59,12 @@ Add Prometheus as a data source - do not use localhost even though Prometheus an
 A default Prometheus dashboard can be imported with
 on Grafana with `11074` in the Dashboard ID section.
 
-## Requirements
-
-- [Vagrant Reload plugin](https://github.com/aidanns/vagrant-reload)
-- Check IP addresses don't clash.
-  - If changing the IP address of the NFS server, be sure to reflect these changes in the `PV.yml` file on the Jenkins server.
-  - If changing any other IP ensure you update the `Prometheus.yml` file.
-  - Update the puppet master IP at `/etc/hosts`.
-
 ## Default links to web interfaces
 
-Grafana:
-Prometheus:
-Jenkins: 172.31.0.12:30001
-Nexus:
+- Grafana: http://172.31.0.11:80
+- Prometheus: http://172.31.0.11:9090/targets
+- Jenkins: http://172.31.0.12:30001
+- Nexus: http://172.31.0.13
 
 ## Kubernetes Notes
 
