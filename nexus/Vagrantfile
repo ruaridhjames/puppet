@@ -53,7 +53,6 @@ SCRIPT
 
 # To get the intial admin password, connect to the VM and use:
 # sudo cat /var/lib/docker/volumes/nexus-data/_data/admin.password
-# sudo sed -i '/\[main\]/ a certname = puppetmaster\nserver = puppetmaster\nenvironment = production\nruninterval = 1h' /etc/puppet/puppet.conf
 
 Vagrant.configure("2") do |config|
 
