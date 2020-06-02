@@ -1,7 +1,5 @@
 ## Installation Order
 
----
-
 The most important part here is that the Puppet Master is installed first. The rest is not too important.
 
 1. Puppetmaster
@@ -12,8 +10,6 @@ The most important part here is that the Puppet Master is installed first. The r
 6. Logger
 
 ## Puppet Master
-
----
 
 ##### Important commands
 
@@ -30,12 +26,6 @@ On agents:
 
 ## Jenkins
 
----
-
-#### Add node to cluster
-
----
-
 #### Initial Password
 
 To get initial password either connect to the NFS-Server and navigate to:
@@ -45,8 +35,6 @@ To get initial password either connect to the NFS-Server and navigate to:
 ```
 
 ## Nexus
-
----
 
 #### Get Initial Password
 
@@ -58,16 +46,12 @@ Connect to the VM and naviate to
 
 ## Grafana
 
----
-
 Add Prometheus as a data source - do not use localhost even though Prometheus and Grafana are on the same VM. Use the VMs IP.
 
 A default Prometheus dashboard can be imported with
 on Grafana with `11074` in the Dashboard ID section.
 
 ## Requirements
-
----
 
 - [Vagrant Reload plugin](https://github.com/aidanns/vagrant-reload)
 - Check IP addresses don't clash.
@@ -77,8 +61,6 @@ on Grafana with `11074` in the Dashboard ID section.
 
 ## Default links to web interfaces
 
----
-
 Grafana:
 Prometheus:
 Jenkins: 172.31.0.12:30001
@@ -86,7 +68,7 @@ Nexus:
 
 ## Kubernetes Notes
 
----
+#### Add node to cluster
 
 Once installed scroll up and there will be 2 lines similar to
 
