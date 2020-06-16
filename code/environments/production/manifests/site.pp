@@ -4,6 +4,6 @@ node default {
 
 node node-01 {
   $ip_address = "172.31.0.20/24"
-  include role::kubernetes::master
-  include profile::hiera_test
+  include role::kubernetes::controller
+  #include profile::hiera_test
 }

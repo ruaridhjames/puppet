@@ -3,9 +3,9 @@
 # A description of what this class does
 #
 # @example
-#   include role::kubernetes::master
-class role::kubernetes::master {
+#   include role::kubernetes::controller
+class role::kubernetes::controller {
   include profile::base
   include profile::server
-  include profile::kubernetes::master
+  include profile::kubernetes::controller
 }

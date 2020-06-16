@@ -7,7 +7,7 @@ hierarchy:
                                    # ^^^ IMPORTANT: include the file extension!
 
   - name: "Per-OS defaults"
-    path: "os/%{facts.os.family}.yaml"
+    path: "os/%{facts.os.name}.yaml"
 
   - name: "Common data"
     path: "common.yaml"
