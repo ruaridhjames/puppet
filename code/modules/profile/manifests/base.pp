@@ -25,5 +25,5 @@ class profile::base {
      }
 
      reboot { 'after': subscribe =>  Package['virt-what'] }
-
+  }
 }
