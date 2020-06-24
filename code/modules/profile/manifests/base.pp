@@ -16,4 +16,14 @@ class profile::base {
     },
     netplan_apply => true,
   }
+
+  # Install virt-what so that we get a virtual fact on the next run
+  # Rebooting at this point seems sensible
+  if $facts['os']['family'] == 'Debian' {
+     package { 'virt-what':
+     	    ensure => installed
+     }
+
+     reboot { 'after': subscribe =>  Package['virt-what'] }
+
 }
