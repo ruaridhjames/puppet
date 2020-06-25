@@ -5,7 +5,7 @@ class filebeat_module {
       'elasticsearch' => {
         'hosts' => [
           'http://localhost:9200',
-          'http://172.31.0.11:9200'
+          'http://172.1.0.11:9200'
         ],
         'loadbalance' => true,
         'cas'         => [

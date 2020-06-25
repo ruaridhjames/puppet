@@ -11,7 +11,10 @@ class profile::base {
       'eth0' => {
         'dhcp4' => false,
         'addresses' => [$ip_address],
-        'gateway4' => '172.31.0.1',
+        'gateway4' => '172.1.0.1',
+	'nameservers' => {
+	  'addresses' => ['172.1.0.1'],
+	}
       }
     },
     netplan_apply => true,
