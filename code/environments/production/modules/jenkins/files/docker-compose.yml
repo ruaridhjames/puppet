@@ -4,9 +4,7 @@ services:
     image: jenkins/jenkins:latest
     container_name: jenkins
     volumes:
-      - type: volume
-        source: 'jenkins_volume'
-        target: '/var/jenkins_home'
+      - 'jenkins_volume:/var/jenkins_home'
     restart: unless-stopped
     ports:
       - '8080:8080'
@@ -14,7 +12,8 @@ services:
 
 volumes:
   jenkins_volume:
+    driver: local
     driver_opts:
-      type: "nfs"
+      type: nfs
       o: "addr=172.1.0.14,nolock,soft,rw"
       device: ":/srv/nfs/jenkins"

@@ -15,7 +15,7 @@ class nfs_server {
     ensure          => 'directory',
     owner           => 'root',
     group           => 'root',
-    mode            => '750',
+    mode            => '766',
   }
 
   file { '/etc/exports':
