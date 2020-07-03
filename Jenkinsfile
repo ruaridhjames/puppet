@@ -4,7 +4,7 @@ pipeline {
     }
     tools {
         // Note: this should match with the tool name configured in your jenkins instance (JENKINS_URL/configureTools/)
-        maven "Maven 3.6.0"
+        maven "Maven 3.6.3"
     }
     environment {
         // This can be nexus3 or nexus2
@@ -14,7 +14,7 @@ pipeline {
         // Where your Nexus is running
         NEXUS_URL = "172.1.0.13:80"
         // Repository where we will upload the artifact
-        NEXUS_REPOSITORY = "darragh_test_repo"
+        NEXUS_REPOSITORY = "groupc-repo"
         // Jenkins credential id to authenticate to Nexus OSS
         NEXUS_CREDENTIAL_ID = "admin/Devopsisgreat1"
     }
@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     // Let's clone the source
-                    git 'https://github.com/kn1ght7/java-hello-world-with-maven';
+                    git 'https://github.com/kn1ght7/java-hello-world-with-maven.git';
                 }
             }
         }
