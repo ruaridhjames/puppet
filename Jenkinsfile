@@ -16,7 +16,7 @@ pipeline {
         // Repository where we will upload the artifact
         NEXUS_REPOSITORY = "darragh_test_repo"
         // Jenkins credential id to authenticate to Nexus OSS
-        NEXUS_CREDENTIAL_ID = "darragh_test_repo"
+        NEXUS_CREDENTIAL_ID = "nexus-credentials"
     }
     stages {
         stage("clone code") {
@@ -40,17 +40,17 @@ pipeline {
             steps {
                 script {
                     // Read POM xml file using 'readMavenPom' step , this step 'readMavenPom' is included in: https://plugins.jenkins.io/pipeline-utility-steps
-                    //pom = readMavenPom file: "pom.xml";
+                    pom = readMavenPom file: "pom.xml";
                     // Find built artifact under target folder
-                    //filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
+                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
                     // Print some info from the artifact found
-                    //echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
                     // Extract the path from the File found
-                    //artifactPath = filesByGlob[0].path;
+                    artifactPath = filesByGlob[0].path;
                     // Assign to a boolean response verifying If the artifact name exists
-                    //artifactExists = fileExists artifactPath;
-                    //if(artifactExists) {
-                        //echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
+                    artifactExists = fileExists artifactPath;
+                    if(artifactExists) {
+                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
                         nexusArtifactUploader(
                             nexusVersion: NEXUS_VERSION,
                             protocol: NEXUS_PROTOCOL,
@@ -72,9 +72,9 @@ pipeline {
                                 type: "pom"]
                             ]
                         );
-                    //} else {
-                        //error "*** File: ${artifactPath}, could not be found";
-                    //}
+                    } else {
+                        error "*** File: ${artifactPath}, could not be found";
+                    }
                 }
             }
         }
