@@ -11,9 +11,22 @@ class profile::base {
       'eth0' => {
         'dhcp4' => false,
         'addresses' => [$ip_address],
-        'gateway4' => '172.31.0.1',
+        'gateway4' => '172.1.0.1',
+	'nameservers' => {
+	  'addresses' => ['172.1.0.1'],
+	}
       }
     },
     netplan_apply => true,
+  }
+
+  # Install virt-what so that we get a virtual fact on the next run
+  # Rebooting at this point seems sensible
+  if $facts['os']['family'] == 'Debian' {
+     package { 'virt-what':
+     	    ensure => installed
+     }
+
+     reboot { 'after': subscribe =>  Package['virt-what'] }
   }
 }
